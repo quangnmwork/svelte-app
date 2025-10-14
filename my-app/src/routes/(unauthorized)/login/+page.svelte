@@ -1,63 +1,61 @@
-<script lang="ts" module>
-	import { z } from 'zod';
-
-	const schema = z
-		.object({
-			email: z.string().email('Email is required'),
-			password: z.string().min(8, 'Password is required')
-		})
-		.required();
-</script>
-
 <script lang="ts">
-	import { superForm, defaults } from 'sveltekit-superforms';
-	import { zod } from 'sveltekit-superforms/adapters';
+	import type { ActionData } from './$types';
+	import { enhance } from '$app/forms';
 
-	const form = superForm(defaults(zod(schema)), {
-		validators: zod(schema),
-		SPA: true
-	});
-
-	const { form: formData, submitting } = form;
-
-	async function handleLogin(e: Event) {
-		e.preventDefault();
-	}
+	let isLoggingIn = $state(false);
+	const { data } = $props<{ data: ActionData }>();
 </script>
 
 <div class="flex min-h-screen items-center justify-center bg-gray-100">
 	<div class="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
 		<h1 class="mb-6 text-center text-2xl font-bold">Login</h1>
 
-		<form on:submit|preventDefault={handleLogin} class="space-y-4">
+		<form
+			method="POST"
+			class="space-y-4"
+			use:enhance={() => {
+				isLoggingIn = true;
+
+				return async ({ update }) => {
+					await update();
+					isLoggingIn = false;
+				};
+			}}
+		>
 			<div>
 				<label for="email" class="mb-1 block text-sm font-medium">Email</label>
 				<input
 					id="email"
 					type="email"
+					name="email"
 					class="w-full rounded border px-3 py-2 focus:border-blue-400 focus:outline-none focus:ring"
-					bind:value={$formData.email}
 					required
 					placeholder="user@example.com"
 				/>
+				{#if data?.errors?.email}
+					<p class="text-red-500">{data?.errors?.email}</p>
+				{/if}
 			</div>
 			<div>
 				<label for="password" class="mb-1 block text-sm font-medium">Password</label>
 				<input
 					id="password"
 					type="password"
+					name="password"
 					class="w-full rounded border px-3 py-2 focus:border-blue-400 focus:outline-none focus:ring"
-					bind:value={$formData.password}
 					required
 					placeholder="Password"
 				/>
+				{#if data?.errors?.password}
+					<p class="text-red-500">{data?.errors?.password}</p>
+				{/if}
 			</div>
 			<button
 				type="submit"
 				class="flex w-full items-center justify-center rounded bg-blue-600 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
-				disabled={$submitting}
+				disabled={isLoggingIn}
 			>
-				{#if $submitting}
+				{#if isLoggingIn}
 					<svg class="mr-2 inline h-5 w-5 animate-spin" viewBox="0 0 24 24">
 						<circle
 							class="opacity-25"

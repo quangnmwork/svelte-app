@@ -1,3 +1,5 @@
+<!-- This page is used to register a new user using a form action -->
+
 <script lang="ts" module>
 	import { z } from 'zod';
 
@@ -11,40 +13,15 @@
 <script lang="ts">
 	import { superForm, defaults } from 'sveltekit-superforms';
 	import { zod } from 'sveltekit-superforms/adapters';
-	import { REGISTER_DOCUMENT } from '$lib/api/query';
-	import { fetchGraphQL } from '$lib/api/graphql-client';
-	import type { AuthPayload, MutationRegisterArgs } from '$lib/gql/graphql';
+	import { enhance } from '$app/forms';
 
 	const form = superForm(defaults(zod(schema)), {
 		validators: zod(schema),
 		SPA: true
 	});
-	const { form: formData, message, submitting, validateForm } = form;
+	const { form: formData, message } = form;
 
-	const handleRegister = async (e: Event) => {
-		e.preventDefault();
-
-		const check = await validateForm({ update: true });
-
-		if (!check.valid) return;
-
-		try {
-			const result = await fetchGraphQL<{ register: AuthPayload }, MutationRegisterArgs>(
-				REGISTER_DOCUMENT,
-				{
-					email: $formData.email,
-					password: $formData.password,
-					name: $formData.name
-				}
-			);
-
-			localStorage.setItem('token', result.register.token);
-
-			window.alert('Registration successful');
-		} catch (error) {
-			console.error(error);
-		}
-	};
+	let isCreating = $state(false);
 </script>
 
 <div class="flex min-h-screen items-center justify-center bg-gray-100">
@@ -61,7 +38,25 @@
 			</div>
 		{/if}
 
-		<form method="POST" class="space-y-4" on:submit|preventDefault={handleRegister}>
+		<form
+			method="POST"
+			class="space-y-4"
+			action="?/register"
+			use:enhance={() => {
+				isCreating = true;
+
+				return async ({ update, result }) => {
+					await update();
+					isCreating = false;
+
+					if (result.status === 200) {
+						window.alert('Registration successful');
+					} else {
+						window.alert('Registration failed');
+					}
+				};
+			}}
+		>
 			<div>
 				<label for="email" class="mb-1 block text-sm font-medium">Email</label>
 				<input
@@ -102,10 +97,11 @@
 
 			<button
 				type="submit"
+				formaction="?/register"
 				class="flex w-full items-center justify-center rounded bg-blue-600 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
-				disabled={$submitting}
+				disabled={isCreating}
 			>
-				{#if $submitting}
+				{#if isCreating}
 					<svg class="mr-2 inline h-5 w-5 animate-spin" viewBox="0 0 24 24">
 						<circle
 							class="opacity-25"
