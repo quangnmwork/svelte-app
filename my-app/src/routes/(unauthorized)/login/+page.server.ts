@@ -32,6 +32,6 @@ export const actions: Actions = {
 		});
 
 		// In actions, you must throw to redirect
-		redirect(307, '/register');
+		redirect(307, '/tasks');
 	}
 };
